@@ -1,18 +1,10 @@
-
-Примечание 
-Если вдруг не обновляются репозитории и связь долбится в ftp.altlinux.org, то 
-делаем следующее: 
-mcedit /etc/apt/sources.list.d/alt.list 
-ftp.altlinux.ru - в трёх раскомментированных строчках посередине меняю .org 
-на .ru 
-Первый модуль 
-1. 
-Базовая настройка ISP 
+First modul 
+1. ISP 
 apt-get update && apt-get install nano iptables tzdata -y 
 nano /etc/hostname 
-ISP - меняю имя! 
+ISP 
 nano /etc/sysconfig/network 
-HOSTNAME=ISP - поменял имя! 
+HOSTNAME=ISP
 cd /etc/net/ifaces/ 
 cp -r enp6s19 enp6s20 
 cp -r enp6s19 enp6s21 
@@ -47,8 +39,7 @@ reboot
 ping ya.ru -I 172.16.4.1 
 ping ya.ru -I 172.16.5.1 
 ln -sf /usr/share/zoneinfo/Europe/Moscow /etc/localtime 
-2. 
-Настройка адресации и маршрутизации на HQ-RTR 
+2. HQ-RTR 
 en 
 conf t 
 hostname hq-rtr.au-team.irpo 
@@ -106,8 +97,7 @@ passive-interface 999
 area 0 authentication message-digest 
 ex 
 do wr 
-3. 
-Настройка адресации и маршрутизации на BR-RTR 
+3. BR-RTR 
 en 
 conf t 
 hostname br-rtr.au-team.irpo 
@@ -145,8 +135,7 @@ passive-interface isp
 passive-interface lan 
 ex 
 do wr 
-4. 
-Настройка свитча HQ-SW 
+4. HQ-SW 
 hostnamectl hostname hq-sw.au-team.irpo; exec bash 
 cd /etc/net/ifaces 
 cp -r ens19 ens20 
@@ -171,8 +160,7 @@ ovs-vsctl add-port  hq-sw ens21 tag=200
 reboot 
 ping ya.ru 
 timedatectl set-timezone Europe/Moscow  
-5. 
-Настройка DNS-сервера HQ-SRV 
+5. HQ-SRV 
 hostnamectl hostname hq-srv.au-team.irpo; exec bash 
 cd /etc/net/ifaces/ens19 
 echo 192.168.1.2/26 > ipv4address 
@@ -182,14 +170,14 @@ systemctl restart network
 apt-get update && apt-get install nano bind bind-utils -y 
 cd /etc/bind/ 
 nano named.conf 
-#include “/etc/bind/rndc.conf”; - комментирую строку, не пишу! 
+#include “/etc/bind/rndc.conf”;
 nano options.conf 
-listen-on { 192.168.1.2; }; - меняю адрес на этот! 
-//listen-on-v6 { ::1;}; - комментируем строку, не пишу! 
-forwarders { 77.88.8.8; }; - раскомментировал и записал адрес! 
-allow-query { any; }; - раскомментировал и записал значение! 
-allow-query-cache { any; }; - раскомментировал и записал значение! 
-allow-recursion { any; }; - раскомментировал и записал значение! 
+listen-on { 192.168.1.2; }; 
+//listen-on-v6 { ::1;};
+forwarders { 77.88.8.8; };
+allow-query { any; }; 
+allow-query-cache { any; };
+allow-recursion { any; };
 nano local.conf 
 zone “au-team.irpo” { 
 type master; 
@@ -202,11 +190,11 @@ file “/etc/bind/zone/db.reverse”;
 cd zone 
 cp localhost db.au 
 nano db.au 
-Ctrl \ - сочетание клавиш! 
+Ctrl \  
 localhost 
 au-team.irpo 
-A - нажимаю! 
-IN A 192.168.1.2 - меняю адрес на этот! 
+A 
+IN A 192.168.1.2 
 cp db.au db.reverse 
 chown root:named db.* 
 nano db.au 
@@ -237,7 +225,7 @@ IN PTR hq-rtr.au-team.irpo.
 IN PTR hq-srv.au-team.irpo. 
 66 IN PTR hq-cli.au-team.irpo. 
 systemctl restart bind 
-cd /etc/net/ifaces/{доступный интерфейс} 
+cd /etc/net/ifaces/{ens} 
 nano resolv.conf 
 nameserver 192.168.1.2 
 search au-team.irpo 
@@ -248,8 +236,7 @@ host hq-srv
 host 192.168.1.2 
 host wiki 
 host ya.ru 
-6. 
-Смена DNS-сервера на обеих RTR 
+6.HQ-RTR and BR-RTR 
 en 
 conf t 
 no ip name-server 77.88.8.8 
@@ -257,8 +244,7 @@ ip name-server 192.168.1.2
 ip domain-name au-team.irpo 
 do ping hq-srv 
 do wr 
-7. 
-Настройка DHCP-сервера на HQ-RTR 
+7.HQ-RTR 
 ip pool hq 192.168.1.67-192.168.1.78 
 dhcp-server 1 
 static ip 192.168.1.66 
@@ -279,14 +265,12 @@ ex
 int 200 
 dhcp-server 1 
 do wr 
-8. 
-Базовая настройка HQ-CLI 
+8.HQ-CLI 
 hostnamectl hostname hq-cli.au-team.irpo; exec bash 
 timedatectl set-timezone Europe/Moscow 
 ping ya.ru 
 host hq-srv 
-9. 
-Базовая настройка BR-SRV 
+9.BR-SRV 
 hostnamectl hostname br-srv.au-team.irpo; exec bash 
 cd /etc/net/ifaces/ens19 
 echo 192.168.2.2/27 > ipv4address 
@@ -298,30 +282,29 @@ systemctl restart network
 ping ya.ru 
 ping hq-srv 
 ping wiki 
-10. Настройка времени и создание админов на обеих RTR 
+10.HQ-RTR and BR-RTR 
 ntp timezone utc+3 
 username net_admin 
 password P@$$word 
 role admin 
 ex 
 do wr 
-11. Настройка учёток, пользаков, времени на обеих SRV 
+11.HQ-SRV and BR-SRV 
 useradd -m sshuser -u 1010 -s /bin/bash 
 passwd sshuser 
-P@ssw0rd - два раза! 
+P@ssw0rd  
 usermod -aG wheel sshuser 
 mcedit /etc/sudoers 
-WHEEL_USERS ALL=(ALL:sshuser) NOPASSWD: ALL - раскомментировал 
-и записал значение! 
+WHEEL_USERS ALL=(ALL:sshuser) NOPASSWD: ALL
 su - sshuser 
 sudo vim 
 nano /etc/openssh/sshd_config 
-Port 2024 - раскомментировал и записал значение! 
-AllowUsers sshuser - написал вручную! 
-MasAuthTries 2 - раскомментировал и записал значение! 
-Banner /etc/banner.net - раскомментировал и записал значение! 
+Port 2024 
+AllowUsers sshuser 
+MasAuthTries 2 
+Banner /etc/banner.net 
 nano /etc/banner.net 
-Authorized Access Only - после этого нажать энтер и уже потом сохранить! 
+Authorized Access Only 
 systemctl restart sshd.service 
 ssh -p 2024 sshuser@localhost 
 exit 
@@ -334,7 +317,7 @@ admc gpui git -y
 systemctl enable --now ahttpd alteratord 
 domainname au-team.irpo 
 mcedit /etc/sysconfig/network 
-HOSTNAME=br-srv.au-team.irpo - меняю значение на это! 
+HOSTNAME=br-srv.au-team.irpo 
 rm -rf /etc/samba/smb.conf /var/{lib,cache}/samba 
 mkdir -p /var/lib/samba/sysvol 
 samba-tool domain provision --realm=au-team.irpo --domain=au-team --
@@ -354,8 +337,7 @@ samba-tool computer add wiki --ip-address=172.16.5.1 -U Administrator
 2. 
 Ввод в домен и настройка Samba на HQ-CLI 
 apt-get update && apt-get install admx-* admc gpui sudo gpupdate -y 
-Переходим в Firefox по адресу 192.168.2.2:8080, должен открыться центр 
-управления системой. 
+Переходим в Firefox по адресу 192.168.2.2:8080
 Нажимаем Настройка 
 Режим эксперта - Применить 
 Переходим в раздел Веб-интерфейс 
